@@ -33,10 +33,7 @@ Claude Desktop設定ファイルを更新：
 {
   "mcpServers": {
     "ndl-search": {
-      "command": "/path/to/ndl/.mcp/run.sh",
-      "env": {
-        "OPENAI_API_KEY": "sk-your-key-here"
-      }
+      "command": "/path/to/ndl/.mcp/run.sh"
     }
   }
 }
