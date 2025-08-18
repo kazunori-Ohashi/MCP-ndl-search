@@ -1,4 +1,5 @@
 // NDL仕様スキーマ準拠の型定義
+import { LibraryHolding } from './contracts';
 
 export type ValidatedQuery = { 
   cql: string; 
@@ -10,15 +11,18 @@ export type NdlSearchParams = {
   maximumRecords?: number | undefined;
   startRecord?: number | undefined;
   recordSchema?: 'dcndl' | 'mods' | 'dc' | string | undefined; // 現状使っている値だけ列挙、他はstring
+  includeHoldings?: boolean | undefined; // 図書館所蔵情報を含むか
 };
 
 export type NdlRecord = {
   id: string;            // 例: "ndl:XXXX"
   title: string;
   creators?: string[] | undefined;
+  subjects?: string[] | undefined;  // 件名情報追加
   date?: string | undefined;
   language?: string | undefined;
   source: 'NDL';
+  holdings?: LibraryHolding[] | undefined;  // 図書館所蔵情報追加
   raw?: unknown;         // パススルー
 };
 

@@ -10,7 +10,7 @@ export type SearchQueryCandidate = {
   cql: string;
   confidence?: number; // 0..1
   explanation?: string;
-  generatedBy: 'rules'|'llm'|'hybrid';
+  generatedBy: 'rules'|'llm'|'hybrid'|'advanced-strategy'|'simple-fallback';
 };
 
 export type ValidationError = {
@@ -44,6 +44,17 @@ export type NdlRecord = {
   rawXml?: string;
 };
 
+// 図書館所蔵情報の型定義
+export type LibraryHolding = {
+  libraryName: string;           // 図書館名
+  libraryCode?: string;          // NDL図書館コード
+  callNumber?: string;           // 請求記号
+  availability?: string;         // 貸出状況
+  location?: string;             // 配架場所
+  materialType?: string;         // 資料種別
+  opacUrl?: string;             // OPACリンク
+};
+
 export type MCPRecord = {
   id: string;
   title: string;
@@ -54,6 +65,7 @@ export type MCPRecord = {
   description?: string;
   thumbnail_url?: string;
   digital_object_url?: string;
-  source: { provider: 'NDL'; retrieved_at: string; license?: string; raw?: any };
-  raw_record?: string;
+  source: { provider: 'NDL'; retrieved_at: string; license?: string };
+  holdings?: LibraryHolding[];   // 図書館所蔵情報リスト追加
+  // raw_recordとsource.rawフィールドを削除：データ量削減のため
 };

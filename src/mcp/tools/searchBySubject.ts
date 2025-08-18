@@ -35,6 +35,11 @@ export const searchBySubjectTool: Tool = {
         type: 'string',
         description: 'Output format for results: "json" or "yaml" (default: no formatting)',
         enum: ['json', 'yaml']
+      },
+      includeHoldings: {
+        type: 'boolean',
+        description: 'Include library holdings information from libraries across Japan. WARNING: Significantly increases response size. Only use when you specifically need to know which libraries have the book. (default: false)',
+        default: false
       }
     },
     required: ['subject'],
@@ -48,6 +53,7 @@ export interface SearchBySubjectArgs {
   maxRecords?: number;
   publishToMcp?: boolean;
   output_format?: OutputFormat;
+  includeHoldings?: boolean;
 }
 
 export interface SearchBySubjectResult {
@@ -76,11 +82,25 @@ export async function handleSearchBySubject(args: SearchBySubjectArgs): Promise<
     console.error(`ndl_search_by_subject: CQL="${cql}"`);
     
     // Execute search
-    const records = await searchNDL({ cql, maximumRecords: maxRecords });
+    const searchParams = {
+      cql,
+      maximumRecords: maxRecords,
+      ...(includeHoldings && { recordSchema: 'dcndl' }),
+      includeHoldings
+    };
+    const records = await searchNDL(searchParams);
     console.error(`ndl_search_by_subject: found ${records.length} records`);
     
     // Sort by relevance
-    const sortedRecords = sortBySubjectRelevance(records, subject, additionalSubject);
+    let sortedRecords = sortBySubjectRelevance(records, subject, additionalSubject);
+    
+    // 所蔵情報を含めない場合はholdingsフィールドを削除
+    if (!includeHoldings) {
+      sortedRecords = sortedRecords.map(record => {
+        const { holdings, ...recordWithoutHoldings } = record;
+        return recordWithoutHoldings as NdlRecord;
+      });
+    }
     
     // Optionally publish to MCP
     if (publishToMcp && sortedRecords.length > 0) {
@@ -158,13 +178,13 @@ function convertToMCPRecord(record: NdlRecord): any {
     title: record.title,
     creators: record.creators || [],
     pub_date: typeof record.date === 'object' ? record.date._ : record.date,
-    subjects: [],
+    subjects: record.subjects || [],
     identifiers: { NDLBibID: record.id },
     description: undefined,
     source: { 
       provider: 'NDL',
       retrieved_at: new Date().toISOString()
-    },
-    raw_record: JSON.stringify(record.raw)
+    }
+    // raw_record: JSON.stringify(record.raw) - 削除：データ量削減のため
   };
 }

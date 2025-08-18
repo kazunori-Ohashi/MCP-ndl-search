@@ -31,6 +31,10 @@ logs/
 *.swp
 *.swo
 
+# AI Assistant Configs
+.claude/
+.gemini/
+
 # OS
 .DS_Store
 Thumbs.db

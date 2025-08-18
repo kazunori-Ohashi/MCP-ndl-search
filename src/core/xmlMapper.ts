@@ -1,8 +1,9 @@
 import * as xml2js from 'xml2js';
-import { MCPRecord } from '../types/contracts';
+import { MCPRecord, LibraryHolding } from '../types/contracts';
+import { NdlRecord } from '../types/ndl';
 import { v4 as uuidv4 } from 'uuid';
 
-export function parseNdlXmlToRecords(rawXml: string): MCPRecord[] {
+export function parseNdlXmlToRecords(rawXml: string, includeHoldings = false): NdlRecord[] {
   try {
     let result: any;
     xml2js.parseString(rawXml, {
@@ -25,13 +26,13 @@ export function parseNdlXmlToRecords(rawXml: string): MCPRecord[] {
       ? response.records.record 
       : [response.records.record];
 
-    const mcpRecords: MCPRecord[] = [];
+    const ndlRecords: NdlRecord[] = [];
 
     for (const record of records) {
       try {
-        const mcpRecord = mapRecordToMCP(record);
-        if (mcpRecord) {
-          mcpRecords.push(mcpRecord);
+        const ndlRecord = mapRecordToNDL(record, includeHoldings);
+        if (ndlRecord) {
+          ndlRecords.push(ndlRecord);
         }
       } catch (error) {
         console.warn('Failed to map record:', error);
@@ -39,14 +40,14 @@ export function parseNdlXmlToRecords(rawXml: string): MCPRecord[] {
       }
     }
 
-    return mcpRecords;
+    return ndlRecords;
   } catch (error) {
     console.error('Failed to parse NDL XML:', error);
     throw new Error(`XML parsing failed: ${error}`);
   }
 }
 
-function mapRecordToMCP(record: any): MCPRecord | null {
+function mapRecordToNDL(record: any, includeHoldings = false): NdlRecord | null {
   try {
     let recordData = record.recordData;
     
@@ -108,36 +109,32 @@ function mapRecordToMCP(record: any): MCPRecord | null {
     const identifiers = ndlBibId ? { NDLBibID: ndlBibId } : undefined;
     const subjects = extractSubjects(bibResource);
     const language = extractLanguage(bibResource);
+    
+    // 所蔵情報の抽出（dcndl:Itemエレメントから）
+    const holdings = includeHoldings ? extractHoldings(recordData['rdf:RDF']) : [];
 
-    // Generate source metadata
+    // Generate source metadata (軽量化：rawフィールドと関連リンク情報を削除)
     const source = {
       provider: 'NDL' as const,
       retrieved_at: new Date().toISOString(),
-      license: 'NDL Terms of Use',
-      raw: bibResource
+      license: 'NDL Terms of Use'
+      // raw: bibResource - 削除：データ量削減のため
     };
 
-    // Convert record back to XML string for raw_record
-    const builder = new xml2js.Builder({ headless: true });
-    const rawRecordXml = builder.buildObject({ record });
-
-    const mcpRecord: MCPRecord = {
+    // NdlRecord作成（所蔵情報含む）
+    const ndlRecord: NdlRecord = {
       id,
       title,
       creators,
-      ...(pub_date && { pub_date }),
-      ...(identifiers && { identifiers }),
-      ...(subjects.length > 0 && { subjects }),
-      source,
-      raw_record: rawRecordXml
+      subjects: subjects.length > 0 ? subjects : undefined,
+      date: pub_date,
+      language,
+      holdings: holdings.length > 0 ? holdings : undefined,
+      source: 'NDL',
+      raw: bibResource
     };
 
-    // Add optional fields if present
-    if (language) {
-      mcpRecord.description = `Language: ${language}`;
-    }
-
-    return mcpRecord;
+    return ndlRecord;
   } catch (error) {
     console.error('Error mapping record to MCP:', error);
     return null;
@@ -234,6 +231,98 @@ function extractSubjects(bibResource: any): string[] {
 
 function extractLanguage(bibResource: any): string | undefined {
   return bibResource['dcterms:language'];
+}
+
+/**
+ * 所蔵情報を抽出する（dcndl:Itemエレメントから）
+ */
+function extractHoldings(rdfData: any): LibraryHolding[] {
+  const holdings: LibraryHolding[] = [];
+  
+  // dcndl:Itemエレメントを探す
+  const items = rdfData['dcndl:Item'];
+  if (!items) {
+    return holdings;
+  }
+  
+  // 単一アイテムか配列かを判定
+  const itemArray = Array.isArray(items) ? items : [items];
+  
+  for (const item of itemArray) {
+    try {
+      const holding = extractSingleHolding(item);
+      if (holding) {
+        holdings.push(holding);
+      }
+    } catch (error) {
+      console.warn('Failed to extract holding information:', error);
+    }
+  }
+  
+  return holdings;
+}
+
+/**
+ * 単一のdcndl:Itemから所蔵情報を抽出
+ */
+function extractSingleHolding(item: any): LibraryHolding | null {
+  if (!item) return null;
+  
+  // 図書館情報の抽出（dcndl:holdingAgent > foaf:Agent）
+  const holdingAgent = item['dcndl:holdingAgent'];
+  if (!holdingAgent || !holdingAgent['foaf:Agent']) {
+    return null;
+  }
+  
+  const agent = holdingAgent['foaf:Agent'];
+  const libraryName = agent['foaf:name'];
+  if (!libraryName) {
+    return null;
+  }
+  
+  // NDL図書館コードの抽出
+  let libraryCode: string | undefined;
+  const identifier = agent['dcterms:identifier'];
+  if (identifier && typeof identifier === 'object') {
+    if (identifier['rdf:datatype'] && identifier['rdf:datatype'].includes('NDLLibCode')) {
+      libraryCode = identifier._ || identifier;
+    }
+  }
+  
+  // その他の情報を抽出
+  const callNumber = item['dcndl:callNumber'];
+  const availability = item['dcndl:availability'];
+  const opacUrl = item['rdfs:seeAlso'] && typeof item['rdfs:seeAlso'] === 'object' 
+    ? item['rdfs:seeAlso']['rdf:resource'] 
+    : item['rdfs:seeAlso'];
+  
+  // dcterms:descriptionから配架場所と資料種別を抽出
+  let location: string | undefined;
+  let materialType: string | undefined;
+  
+  const descriptions = item['dcterms:description'];
+  if (descriptions) {
+    const descArray = Array.isArray(descriptions) ? descriptions : [descriptions];
+    for (const desc of descArray) {
+      if (typeof desc === 'string') {
+        if (desc.includes('配置場所') || desc.includes('配架場所')) {
+          location = desc.replace(/^配[置架]場所\s*:\s*/, '');
+        } else if (desc.includes('資料種別')) {
+          materialType = desc.replace(/^資料種別\s*:\s*/, '');
+        }
+      }
+    }
+  }
+  
+  return {
+    libraryName,
+    libraryCode,
+    callNumber,
+    availability,
+    location,
+    materialType,
+    opacUrl
+  };
 }
 
 // function extractPublisher(bibResource: any): string | undefined {

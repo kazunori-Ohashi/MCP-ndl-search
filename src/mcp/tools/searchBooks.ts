@@ -1,5 +1,4 @@
 import { Tool } from '@modelcontextprotocol/sdk/types.js';
-import { generateQueries } from '../../core/queryGenerator';
 import { validateQuery } from '../../core/queryValidator';
 import { searchNDL } from '../../adapters/searchNDL';
 import { publishToMCP } from '../../adapters/publisher.http';
@@ -9,7 +8,7 @@ import { OpenAILLMClient } from '../../adapters/llm.openai';
 import { AdvancedSearchStrategy } from '../../core/searchStrategy';
 import { ResultScoringEngine } from '../../core/resultScoring';
 import { IntelligentSearchEngine } from '../../core/intelligentSearch';
-import type { SearchBooksInput, ToolOutput, NdlRecord } from '../../types/ndl';
+import type { ToolOutput, NdlRecord } from '../../types/ndl';
 import type { LLMClient } from '../../adapters/llm.types';
 
 export const searchBooksTool: Tool = {
@@ -337,13 +336,13 @@ function convertToMCPRecord(record: NdlRecord): any {
     title: record.title,
     creators: record.creators || [],
     pub_date: record.date,
-    subjects: [],
+    subjects: record.subjects || [],
     identifiers: { NDLBibID: record.id },
     description: undefined,
     source: { 
       provider: 'NDL',
       retrieved_at: new Date().toISOString()
-    },
-    raw_record: JSON.stringify(record.raw)
+    }
+    // raw_record: JSON.stringify(record.raw) - 削除：データ量削減のため
   };
 }

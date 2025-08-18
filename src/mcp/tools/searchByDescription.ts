@@ -3,6 +3,8 @@ import { searchNDL } from '../../adapters/searchNDL';
 import { publishToMCP } from '../../adapters/publisher.http';
 import { enhanceToolOutput, type OutputFormat } from '../../adapters/ndlDataFormatter';
 import type { NdlRecord } from '../../types/ndl';
+import { withMetrics } from '../../middleware/metrics';
+import { logger } from '../../middleware/logger';
 
 export const searchByDescriptionTool: Tool = {
   name: 'ndl_search_by_description',
@@ -35,6 +37,11 @@ export const searchByDescriptionTool: Tool = {
         type: 'string',
         description: 'Output format for results: "json" or "yaml" (default: no formatting)',
         enum: ['json', 'yaml']
+      },
+      includeHoldings: {
+        type: 'boolean',
+        description: 'Include library holdings information from libraries across Japan. WARNING: Significantly increases response size. Only use when you specifically need to know which libraries have the book. (default: false)',
+        default: false
       }
     },
     required: ['description'],
@@ -48,6 +55,7 @@ export interface SearchByDescriptionArgs {
   maxRecords?: number;
   publishToMcp?: boolean;
   output_format?: OutputFormat;
+  includeHoldings?: boolean;
 }
 
 export interface SearchByDescriptionResult {
@@ -58,10 +66,15 @@ export interface SearchByDescriptionResult {
 }
 
 export async function handleSearchByDescription(args: SearchByDescriptionArgs): Promise<SearchByDescriptionResult> {
-  const { description, titleKeyword = '', maxRecords = 20, publishToMcp = true, output_format } = args;
+  const { description, titleKeyword = '', maxRecords = 20, publishToMcp = true, output_format, includeHoldings = false } = args;
+  const toolLogger = logger.child('search-by-description');
 
   try {
-    console.error(`ndl_search_by_description: searching description="${description}", title="${titleKeyword}"`);
+    toolLogger.info('Starting description search', {
+      description: description.substring(0, 100),
+      titleKeyword,
+      maxRecords
+    });
     
     // Build CQL query focused on description
     let cql: string;
@@ -71,22 +84,37 @@ export async function handleSearchByDescription(args: SearchByDescriptionArgs): 
       cql = `description="${description}"`;
     }
     
-    console.error(`ndl_search_by_description: CQL="${cql}"`);
+    toolLogger.debug('Generated CQL query', { cql });
     
-    // Execute search
-    const records = await searchNDL({ cql, maximumRecords: maxRecords });
-    console.error(`ndl_search_by_description: found ${records.length} records`);
+    // Execute search (with rate limiting, caching, metrics)
+    // 所蔵情報が必要な場合はdcndlスキーマを使用
+    const searchParams = {
+      cql,
+      maximumRecords: maxRecords,
+      ...(includeHoldings && { recordSchema: 'dcndl' })
+    };
+    const records = await searchNDL(searchParams);
+    toolLogger.info('Search completed', { resultCount: records.length });
     
     // Sort by relevance (simple heuristic)
-    const sortedRecords = sortByDescriptionRelevance(records, description, titleKeyword);
+    let sortedRecords = sortByDescriptionRelevance(records, description, titleKeyword);
+    
+    // 所蔵情報を含めない場合はholdingsフィールドを削除
+    if (!includeHoldings) {
+      sortedRecords = sortedRecords.map(record => {
+        const { holdings, ...recordWithoutHoldings } = record;
+        return recordWithoutHoldings as NdlRecord;
+      });
+    }
     
     // Optionally publish to MCP
     if (publishToMcp && sortedRecords.length > 0) {
       try {
         const mcpRecords = sortedRecords.map(convertToMCPRecord);
         await publishToMCP(mcpRecords);
+        toolLogger.debug('Published to MCP', { publishedCount: mcpRecords.length });
       } catch (error) {
-        console.warn(`MCP publishing failed: ${error instanceof Error ? error.message : String(error)}`);
+        toolLogger.warn('MCP publishing failed', {}, error as Error);
       }
     }
 
@@ -108,6 +136,10 @@ export async function handleSearchByDescription(args: SearchByDescriptionArgs): 
     };
 
   } catch (error) {
+    toolLogger.error('Description search failed', {
+      description: description.substring(0, 100),
+      titleKeyword
+    }, error as Error);
     throw new Error(`Description search failed: ${error instanceof Error ? error.message : String(error)}`);
   }
 }
@@ -148,13 +180,13 @@ function convertToMCPRecord(record: NdlRecord): any {
     title: record.title,
     creators: record.creators || [],
     pub_date: typeof record.date === 'object' ? record.date._ : record.date,
-    subjects: [],
+    subjects: record.subjects || [],
     identifiers: { NDLBibID: record.id },
     description: undefined,
     source: { 
       provider: 'NDL',
       retrieved_at: new Date().toISOString()
-    },
-    raw_record: JSON.stringify(record.raw)
+    }
+    // raw_record: JSON.stringify(record.raw) - 削除：データ量削減のため
   };
 }
