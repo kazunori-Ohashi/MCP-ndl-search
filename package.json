@@ -1,0 +1,56 @@
+{
+  "name": "ndl-mcp-pipeline",
+  "version": "1.0.0",
+  "description": "NDL ↔ MCP パイプライン (自然言語→CQL→書誌データ配信)",
+  "main": "dist/index.js",
+  "type": "module",
+  "scripts": {
+    "build": "tsc",
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage",
+    "lint": "eslint src __tests__ --ext .ts",
+    "lint:fix": "eslint src __tests__ --ext .ts --fix",
+    "typecheck": "tsc --noEmit",
+    "dev": "tsx watch src/index.ts",
+    "start": "node dist/index.js",
+    "mcp:server": "tsx src/cli/mcp.ts",
+    "mcp:build": "tsc && node dist/cli/mcp.js"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^0.5.0",
+    "@types/js-yaml": "^4.0.9",
+    "axios": "^1.6.0",
+    "dotenv": "^16.3.0",
+    "js-yaml": "^4.1.0",
+    "openai": "^4.20.0",
+    "pino": "^8.15.0",
+    "prom-client": "^15.0.0",
+    "uuid": "^9.0.0",
+    "xml2js": "^0.6.0",
+    "zod": "^3.22.0"
+  },
+  "devDependencies": {
+    "@types/jest": "^29.5.0",
+    "@types/node": "^20.0.0",
+    "@types/uuid": "^9.0.0",
+    "@types/xml2js": "^0.4.0",
+    "@typescript-eslint/eslint-plugin": "^6.0.0",
+    "@typescript-eslint/parser": "^6.0.0",
+    "eslint": "^8.50.0",
+    "jest": "^29.7.0",
+    "nock": "^13.4.0",
+    "ts-jest": "^29.1.0",
+    "tsx": "^4.20.4",
+    "typescript": "^5.2.0"
+  },
+  "keywords": [
+    "NDL",
+    "MCP",
+    "TDD",
+    "TypeScript",
+    "書誌検索"
+  ],
+  "author": "",
+  "license": "MIT"
+}

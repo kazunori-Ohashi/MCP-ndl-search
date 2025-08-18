@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<searchRetrieveResponse xmlns="http://www.loc.gov/zing/srw/">
+  <version>1.2</version>
+  <numberOfRecords>3</numberOfRecords>
+  <records>
+    <record>
+      <recordSchema>info:srw/schema/1/dc-v1.1</recordSchema>
+      <recordData>
+        <rdf:RDF xmlns:dc="http://purl.org/dc/elements/1.1/"
+                 xmlns:dcterms="http://purl.org/dc/terms/"
+                 xmlns:dcndl="http://ndl.go.jp/dcndl/terms/"
+                 xmlns:foaf="http://xmlns.com/foaf/0.1/"
+                 xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
+          <dcndl:BibResource rdf:about="https://ndlsearch.ndl.go.jp/books/R000000004-I030474683#material">
+            <dcterms:identifier rdf:datatype="http://ndl.go.jp/dcndl/terms/NDLBibID">030474683</dcterms:identifier>
+            <dcterms:title>アーカイブズ : 温故知新(その1)昭和四一年...</dcterms:title>
+            <dcterms:issued>2020-06</dcterms:issued>
+            <dcndl:publicationName>遠州 = Monthly the Enshu : 月刊茶道誌</dcndl:publicationName>
+            <dcndl:pageRange>22-33</dcndl:pageRange>
+            <dcterms:publisher><foaf:Agent><foaf:name>東京 : 大有</foaf:name></foaf:Agent></dcterms:publisher>
+            <dcterms:language>jpn</dcterms:language>
+            <dcterms:subject>茶道</dcterms:subject>
+          </dcndl:BibResource>
+        </rdf:RDF>
+      </recordData>
+    </record>
+    <record>
+      <recordSchema>info:srw/schema/1/dc-v1.1</recordSchema>
+      <recordData>
+        <rdf:RDF xmlns:dc="http://purl.org/dc/elements/1.1/"
+                 xmlns:dcterms="http://purl.org/dc/terms/"
+                 xmlns:dcndl="http://ndl.go.jp/dcndl/terms/"
+                 xmlns:foaf="http://xmlns.com/foaf/0.1/"
+                 xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
+          <dcndl:BibResource rdf:about="https://ndlsearch.ndl.go.jp/books/R000000004-I030474684#material">
+            <dcterms:identifier rdf:datatype="http://ndl.go.jp/dcndl/terms/NDLBibID">030474684</dcterms:identifier>
+            <dcterms:title>現代茶道具作家名鑑</dcterms:title>
+            <dcterms:creator><foaf:Agent><foaf:name>田中, 太郎</foaf:name></foaf:Agent></dcterms:creator>
+            <dcterms:creator><foaf:Agent><foaf:name>山田, 花子</foaf:name></foaf:Agent></dcterms:creator>
+            <dcterms:issued>2020-12</dcterms:issued>
+            <dcterms:publisher><foaf:Agent><foaf:name>京都 : 茶道出版</foaf:name></foaf:Agent></dcterms:publisher>
+            <dcterms:language>jpn</dcterms:language>
+            <dcterms:subject>茶道具</dcterms:subject>
+            <dcterms:subject>工芸</dcterms:subject>
+          </dcndl:BibResource>
+        </rdf:RDF>
+      </recordData>
+    </record>
+    <record>
+      <recordSchema>info:srw/schema/1/dc-v1.1</recordSchema>
+      <recordData>
+        <rdf:RDF xmlns:dc="http://purl.org/dc/elements/1.1/"
+                 xmlns:dcterms="http://purl.org/dc/terms/"
+                 xmlns:dcndl="http://ndl.go.jp/dcndl/terms/"
+                 xmlns:foaf="http://xmlns.com/foaf/0.1/"
+                 xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
+          <dcndl:BibResource rdf:about="https://ndlsearch.ndl.go.jp/books/R000000001-I000123456#material">
+            <dcterms:identifier rdf:datatype="http://ndl.go.jp/dcndl/terms/NDLBibID">000123456</dcterms:identifier>
+            <dc:title>Tea Culture in Modern Japan</dc:title>
+            <dcterms:creator>Smith, John</dcterms:creator>
+            <dcterms:issued>2019-03</dcterms:issued>
+            <dcterms:publisher><foaf:Agent><foaf:name>Tokyo University Press</foaf:name></foaf:Agent></dcterms:publisher>
+            <dcterms:language>eng</dcterms:language>
+            <dcterms:subject>tea ceremony</dcterms:subject>
+            <dcterms:subject>Japanese culture</dcterms:subject>
+          </dcndl:BibResource>
+        </rdf:RDF>
+      </recordData>
+    </record>
+  </records>
+</searchRetrieveResponse>

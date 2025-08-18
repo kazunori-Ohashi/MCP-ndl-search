@@ -1,0 +1,258 @@
+import { handleSearchBooks, handleSruSearch } from '../src/mcp/tools/index';
+import { generateQueries } from '../src/core/queryGenerator';
+import { validateQuery } from '../src/core/queryValidator';
+import { searchNDL } from '../src/core/ndlConnector';
+import { parseNdlXmlToRecords } from '../src/core/xmlMapper';
+import { publishToMCP } from '../src/adapters/publisher.http';
+
+// Mock all dependencies
+jest.mock('../src/core/queryGenerator');
+jest.mock('../src/core/queryValidator');
+jest.mock('../src/core/ndlConnector');
+jest.mock('../src/core/xmlMapper');
+jest.mock('../src/adapters/publisher.http');
+
+const mockGenerateQueries = generateQueries as jest.MockedFunction<typeof generateQueries>;
+const mockValidateQuery = validateQuery as jest.MockedFunction<typeof validateQuery>;
+const mockSearchNDL = searchNDL as jest.MockedFunction<typeof searchNDL>;
+const mockParseNdlXmlToRecords = parseNdlXmlToRecords as jest.MockedFunction<typeof parseNdlXmlToRecords>;
+const mockPublishToMCP = publishToMCP as jest.MockedFunction<typeof publishToMCP>;
+
+describe('MCP Tools', () => {
+  beforeEach(() => {
+    jest.resetAllMocks();
+  });
+
+  describe('handleSearchBooks', () => {
+    test('should successfully process natural language query', async () => {
+      // Setup mocks
+      mockGenerateQueries.mockResolvedValue([{
+        cql: 'subject="茶道" AND issued>=2020',
+        generatedBy: 'llm'
+      }]);
+      
+      mockValidateQuery.mockReturnValue({
+        cql: 'subject="茶道" AND issued>=2020',
+        maximumRecords: 20
+      });
+      
+      mockSearchNDL.mockResolvedValue({
+        rawXml: '<mockXML/>',
+        httpStatus: 200,
+        headers: {}
+      });
+      
+      const mockRecords = [
+        {
+          id: 'ndl:030474683',
+          title: '月刊茶道誌',
+          creators: ['茶道会'],
+          subjects: ['茶道'],
+          pub_date: '2020',
+          identifiers: { NDLBibID: 'ndl:030474683' },
+          description: '茶道に関する月刊誌',
+          source: { provider: 'NDL' as const, retrieved_at: '2025-08-17T09:00:00+09:00' }
+        }
+      ];
+      mockParseNdlXmlToRecords.mockReturnValue(mockRecords);
+      
+      mockPublishToMCP.mockResolvedValue({
+        success: true,
+        results: [{ id: 'ndl:030474683', status: 201 }]
+      });
+
+      // Execute
+      const result = await handleSearchBooks({
+        query: '遠州流茶道の月刊誌、2020年以降',
+        maxRecords: 20,
+        publishToMcp: true
+      });
+
+      // Verify
+      expect(result.success).toBe(true);
+      expect(result.records).toHaveLength(1);
+      expect(result.records[0].id).toBe('ndl:030474683');
+      expect(result.metadata.cql_query).toBe('subject="茶道" AND issued>=2020');
+      expect(result.metadata.total_found).toBe(1);
+      expect(result.metadata.published_to_mcp).toBe(true);
+      expect(result.metadata.generated_by).toBe('llm');
+    });
+
+    test('should handle validation errors', async () => {
+      mockGenerateQueries.mockResolvedValue([{
+        cql: 'badfield="test"',
+        generatedBy: 'llm'
+      }]);
+      
+      mockValidateQuery.mockReturnValue({
+        code: 'DISALLOWED_FIELD',
+        message: 'Field "badfield" is not allowed',
+        details: { field: 'badfield' }
+      });
+
+      const result = await handleSearchBooks({
+        query: 'invalid query'
+      });
+
+      expect(result.success).toBe(false);
+      expect(result.errors).toContain('Query validation failed: Field "badfield" is not allowed');
+      expect(result.metadata.published_to_mcp).toBe(false);
+    });
+
+    test('should handle NDL search failures', async () => {
+      mockGenerateQueries.mockResolvedValue([{
+        cql: 'title="test"',
+        generatedBy: 'rules'
+      }]);
+      
+      mockValidateQuery.mockReturnValue({
+        cql: 'title="test"',
+        maximumRecords: 20
+      });
+      
+      mockSearchNDL.mockRejectedValue(new Error('Network timeout'));
+
+      const result = await handleSearchBooks({
+        query: 'test query'
+      });
+
+      expect(result.success).toBe(false);
+      expect(result.errors).toContain('Unexpected error: Network timeout');
+    });
+
+    test('should work without MCP publishing', async () => {
+      mockGenerateQueries.mockResolvedValue([{
+        cql: 'title="test"',
+        generatedBy: 'rules'
+      }]);
+      
+      mockValidateQuery.mockReturnValue({
+        cql: 'title="test"',
+        maximumRecords: 20
+      });
+      
+      mockSearchNDL.mockResolvedValue({
+        rawXml: '<mockXML/>',
+        httpStatus: 200,
+        headers: {}
+      });
+      
+      const mockRecords = [
+        {
+          id: 'ndl:123456789',
+          title: 'Test Book',
+          creators: ['Author'],
+          subjects: ['Test'],
+          pub_date: '2025',
+          identifiers: { NDLBibID: 'ndl:123456789' },
+          description: 'A test book',
+          source: { provider: 'NDL' as const, retrieved_at: '2025-08-17T09:00:00+09:00' }
+        }
+      ];
+      mockParseNdlXmlToRecords.mockReturnValue(mockRecords);
+
+      const result = await handleSearchBooks({
+        query: 'test',
+        publishToMcp: false
+      });
+
+      expect(result.success).toBe(true);
+      expect(result.metadata.published_to_mcp).toBe(false);
+      expect(mockPublishToMCP).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('handleSruSearch', () => {
+    test('should successfully process CQL query', async () => {
+      mockValidateQuery.mockReturnValue({
+        cql: 'title="Modern Japan"',
+        maximumRecords: 20
+      });
+      
+      mockSearchNDL.mockResolvedValue({
+        rawXml: '<mockXML/>',
+        httpStatus: 200,
+        headers: {}
+      });
+      
+      const mockRecords = [
+        {
+          id: 'ndl:987654321',
+          title: 'Modern Japan',
+          creators: ['Historian'],
+          subjects: ['History', 'Japan'],
+          pub_date: '2024',
+          identifiers: { NDLBibID: 'ndl:987654321' },
+          description: 'A book about modern Japan',
+          source: { provider: 'NDL' as const, retrieved_at: '2025-08-17T09:00:00+09:00' }
+        }
+      ];
+      mockParseNdlXmlToRecords.mockReturnValue(mockRecords);
+
+      const result = await handleSruSearch({
+        cql: 'title="Modern Japan"',
+        maxRecords: 20,
+        startRecord: 1,
+        format: 'dcndl'
+      });
+
+      expect(result.success).toBe(true);
+      expect(result.records).toHaveLength(1);
+      expect(result.records[0].id).toBe('ndl:987654321');
+      expect(result.metadata.cql_query).toBe('title="Modern Japan"');
+      expect(result.metadata.total_records).toBe(1);
+      expect(result.metadata.validation_passed).toBe(true);
+      expect(result.metadata.format).toBe('dcndl');
+    });
+
+    test('should handle CQL validation errors', async () => {
+      mockValidateQuery.mockReturnValue({
+        code: 'WILDCARD_TOO_BROAD',
+        message: 'Wildcard "*" is not allowed for security reasons',
+        details: { pattern: '*' }
+      });
+
+      const result = await handleSruSearch({
+        cql: 'title=*'
+      });
+
+      expect(result.success).toBe(false);
+      expect(result.errors).toContain('CQL validation failed: Wildcard "*" is not allowed for security reasons');
+      expect(result.metadata.validation_passed).toBe(false);
+    });
+
+    test('should handle pagination parameters', async () => {
+      mockValidateQuery.mockReturnValue({
+        cql: 'subject="science"',
+        maximumRecords: 50
+      });
+      
+      mockSearchNDL.mockResolvedValue({
+        rawXml: '<mockXML/>',
+        httpStatus: 200,
+        headers: {}
+      });
+      
+      mockParseNdlXmlToRecords.mockReturnValue([]);
+
+      const result = await handleSruSearch({
+        cql: 'subject="science"',
+        maxRecords: 50,
+        startRecord: 51,
+        format: 'dublin_core'
+      });
+
+      expect(result.success).toBe(true);
+      expect(result.metadata.start_record).toBe(51);
+      expect(result.metadata.format).toBe('dublin_core');
+      
+      // Verify searchNDL was called with correct parameters
+      expect(mockSearchNDL).toHaveBeenCalledWith({
+        cql: 'subject="science"',
+        maximumRecords: 50,
+        startRecord: 51,
+        recordSchema: 'dublin_core'
+      });
+    });
+  });
+});
