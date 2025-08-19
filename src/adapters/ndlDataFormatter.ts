@@ -38,8 +38,11 @@ export function extractCleanBookData(record: NdlRecord): CleanBookRecord {
   if (record.date) {
     if (typeof record.date === 'string') {
       publication_year = record.date.match(/\d{4}/)?.[0];
-    } else if (record.date._ && typeof record.date._ === 'string') {
-      publication_year = record.date._.match(/\d{4}/)?.[0];
+    } else if (typeof record.date === 'object' && record.date !== null && '_' in record.date) {
+      const dateObj = record.date as { _: string };
+      if (typeof dateObj._ === 'string') {
+        publication_year = dateObj._.match(/\d{4}/)?.[0];
+      }
     }
   }
   
@@ -50,10 +53,10 @@ export function extractCleanBookData(record: NdlRecord): CleanBookRecord {
   // NDL URLの構築
   const ndl_url = buildNdlUrl(record.id);
   
-  // その他の情報は現状では空にしておく（必要に応じて拡張）
-  const isbn = undefined;
-  const series_title = undefined;
-  const subjects: string[] = [];
+  // その他の情報を抽出
+  const isbn = undefined; // 必要に応じて raw から抽出
+  const series_title = undefined; // 必要に応じて raw から抽出
+  const subjects: string[] = record.subjects || [];
 
   return {
     title,

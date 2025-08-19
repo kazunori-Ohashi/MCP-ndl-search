@@ -175,10 +175,11 @@ function convertToMCPRecord(record: NdlRecord): any {
     id: record.id,
     title: record.title,
     creators: record.creators || [],
-    pub_date: typeof record.date === 'object' ? record.date._ : record.date,
+    pub_date: (record.date && typeof record.date === 'object') ? (record.date as any)._ : record.date,
     subjects: record.subjects || [],
     identifiers: { NDLBibID: record.id },
     description: undefined,
+    holdings: record.holdings, // 所蔵情報を追加
     source: { 
       provider: 'NDL',
       retrieved_at: new Date().toISOString()

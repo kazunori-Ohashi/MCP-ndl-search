@@ -73,7 +73,7 @@ export interface SearchBooksResult_Internal {
     creators?: string[] | undefined;
     subjects?: string[] | undefined;
     pub_date?: string | undefined;
-    identifiers?: { ISBN?: string; NDLBibID?: string; [k:string]:string } | undefined;
+    identifiers?: { ISBN?: string; NDLBibID?: string; [k:string]: string | undefined } | undefined;
     description?: string | undefined;
     source: {
       provider: string;

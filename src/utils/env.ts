@@ -8,16 +8,20 @@ const EnvSchema = z.object({
   NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
   TZ: z.string().default('Asia/Tokyo'),
   PORT: z.coerce.number().default(8787),
+  HTTP_PORT: z.coerce.number().default(3000),
+  HTTP_HOST: z.string().default('localhost'),
   LOG_LEVEL: z.enum(['trace', 'debug', 'info', 'warn', 'error', 'fatal']).default('info'),
 
-  NDL_BASE_URL: z.string().url(),
+  NDL_BASE_URL: z.string().url().default('https://ndlsearch.ndl.go.jp/api/sru'),
   NDL_RECORD_SCHEMA: z.string().default('dcndl'),
   NDL_MAX_RECORDS: z.coerce.number().min(1).max(200).default(20),
   HTTP_TIMEOUT_MS: z.coerce.number().min(1000).default(15000),
   HTTP_RETRY: z.coerce.number().min(0).max(5).default(3),
 
-  MCP_API_URL: z.string().url(),
+  MCP_API_URL: z.string().url().default('http://localhost:3000/api/v1'),
   MCP_API_TOKEN: z.string().optional(),
+  ENABLE_CORS: z.coerce.boolean().default(true),
+  ENABLE_SWAGGER: z.coerce.boolean().default(true),
 
   LLM_PROVIDER: z.enum(['openai', 'anthropic', 'azure', 'ollama']).default('openai'),
   OPENAI_API_KEY: z.string().optional(),

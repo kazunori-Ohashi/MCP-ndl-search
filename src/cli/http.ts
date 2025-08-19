@@ -112,10 +112,10 @@ async function main(): Promise<void> {
   
   // 設定の組み立て（CLI引数 > 環境変数 > デフォルト）
   const config = {
-    port: args.port ?? (parseInt(env.HTTP_PORT || '', 10) || DEFAULT_HTTP_CONFIG.port),
+    port: args.port ?? (parseInt(String(env.HTTP_PORT || ''), 10) || DEFAULT_HTTP_CONFIG.port),
     host: args.host ?? (env.HTTP_HOST || DEFAULT_HTTP_CONFIG.host),
-    enableCors: args.enableCors ?? (env.ENABLE_CORS !== 'false'),
-    enableSwagger: args.enableSwagger ?? (env.ENABLE_SWAGGER !== 'false')
+    enableCors: args.enableCors ?? env.ENABLE_CORS,
+    enableSwagger: args.enableSwagger ?? env.ENABLE_SWAGGER
   };
   
   const cliLogger = logger.child('http-cli');

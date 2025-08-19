@@ -64,7 +64,7 @@ export interface SearchBySubjectResult {
 }
 
 export async function handleSearchBySubject(args: SearchBySubjectArgs): Promise<SearchBySubjectResult> {
-  const { subject, additionalSubject = '', maxRecords = 20, publishToMcp = true, output_format } = args;
+  const { subject, additionalSubject = '', maxRecords = 20, publishToMcp = true, output_format, includeHoldings = false } = args;
 
   try {
     console.error(`ndl_search_by_subject: searching subject="${subject}", additional="${additionalSubject}"`);
@@ -86,7 +86,7 @@ export async function handleSearchBySubject(args: SearchBySubjectArgs): Promise<
       cql,
       maximumRecords: maxRecords,
       ...(includeHoldings && { recordSchema: 'dcndl' }),
-      includeHoldings
+      includeHoldings: includeHoldings
     };
     const records = await searchNDL(searchParams);
     console.error(`ndl_search_by_subject: found ${records.length} records`);
@@ -177,10 +177,11 @@ function convertToMCPRecord(record: NdlRecord): any {
     id: record.id,
     title: record.title,
     creators: record.creators || [],
-    pub_date: typeof record.date === 'object' ? record.date._ : record.date,
+    pub_date: (record.date && typeof record.date === 'object') ? (record.date as any)._ : record.date,
     subjects: record.subjects || [],
     identifiers: { NDLBibID: record.id },
     description: undefined,
+    holdings: record.holdings, // 所蔵情報を追加
     source: { 
       provider: 'NDL',
       retrieved_at: new Date().toISOString()

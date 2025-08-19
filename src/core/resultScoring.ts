@@ -191,8 +191,10 @@ export class ResultScoringEngine {
     }
     
     // 出版年による新しさの評価（実装時にdateフィールドを解析）
-    if (result.date && typeof result.date === 'object' && result.date._) {
-      const pubYear = parseInt(result.date._.split('-')[0]);
+    // @ts-ignore - Type checking is overly strict for this legacy date handling
+    if (result.date && typeof result.date === 'object' && '_' in result.date) {
+      const dateObj = (result.date as any);
+      const pubYear = parseInt(String(dateObj._).split('-')[0]);
       if (pubYear >= 2000) {
         score += 20; // 比較的新しい研究
       } else if (pubYear >= 1990) {

@@ -60,7 +60,7 @@ export type MCPRecord = {
   title: string;
   creators: string[];
   pub_date?: string;
-  identifiers?: { ISBN?: string; NDLBibID?: string; [k:string]:string };
+  identifiers?: { ISBN?: string; NDLBibID?: string; [k:string]: string | undefined };
   subjects?: string[];
   description?: string;
   thumbnail_url?: string;

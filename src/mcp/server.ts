@@ -179,7 +179,9 @@ export class NDLMCPServer {
           description: argsObj.description,
           titleKeyword: typeof argsObj.titleKeyword === 'string' ? argsObj.titleKeyword : '',
           maxRecords: typeof argsObj.maxRecords === 'number' ? argsObj.maxRecords : 20,
-          publishToMcp: typeof argsObj.publishToMcp === 'boolean' ? argsObj.publishToMcp : true
+          publishToMcp: typeof argsObj.publishToMcp === 'boolean' ? argsObj.publishToMcp : true,
+          output_format: typeof argsObj.output_format === 'string' ? argsObj.output_format : undefined,
+          includeHoldings: typeof argsObj.includeHoldings === 'boolean' ? argsObj.includeHoldings : false
         };
 
       case 'ndl_search_by_subject':
@@ -190,7 +192,9 @@ export class NDLMCPServer {
           subject: argsObj.subject,
           additionalSubject: typeof argsObj.additionalSubject === 'string' ? argsObj.additionalSubject : '',
           maxRecords: typeof argsObj.maxRecords === 'number' ? argsObj.maxRecords : 20,
-          publishToMcp: typeof argsObj.publishToMcp === 'boolean' ? argsObj.publishToMcp : true
+          publishToMcp: typeof argsObj.publishToMcp === 'boolean' ? argsObj.publishToMcp : true,
+          output_format: typeof argsObj.output_format === 'string' ? argsObj.output_format : undefined,
+          includeHoldings: typeof argsObj.includeHoldings === 'boolean' ? argsObj.includeHoldings : false
         };
 
       case 'ndl_search_by_title':
@@ -201,7 +205,9 @@ export class NDLMCPServer {
           title: argsObj.title,
           additionalTitle: typeof argsObj.additionalTitle === 'string' ? argsObj.additionalTitle : '',
           maxRecords: typeof argsObj.maxRecords === 'number' ? argsObj.maxRecords : 20,
-          publishToMcp: typeof argsObj.publishToMcp === 'boolean' ? argsObj.publishToMcp : true
+          publishToMcp: typeof argsObj.publishToMcp === 'boolean' ? argsObj.publishToMcp : true,
+          output_format: typeof argsObj.output_format === 'string' ? argsObj.output_format : undefined,
+          includeHoldings: typeof argsObj.includeHoldings === 'boolean' ? argsObj.includeHoldings : false
         };
 
       default:
